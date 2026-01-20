@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinoy Heritage Hub | 250+ Collections</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;700&family=Gaegu:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Lexend', sans-serif; background: #0f172a; color: white; }
+        .hero-text { font-family: 'Gaegu', cursive; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover { transform: translateY(-5px); background: rgba(255, 255, 255, 0.1); border-color: #fbbf24; }
+        .tab-btn.active { background-color: #fbbf24; color: #0f172a; }
+        .answer { display: none; }
+        .revealed .answer { display: block; }
+        .revealed .click-hint, .revealed .game-input { display: none; }
+        .correct-anim { animation: pulse 0.5s ease-in-out; border-color: #4ade80 !important; }
+        .disabled-card { opacity: 0.6; cursor: not-allowed !important; border-color: #ef4444 !important; }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+
+    <header class="text-center mb-12">
+        <h1 class="hero-text text-6xl md:text-8xl text-yellow-400 mb-4">Pamana Hub</h1>
+        <p class="text-gray-400 text-lg">Koleksyon ng Karunungang Pilipino</p>
+        
+        <div class="mt-4 inline-block bg-white/10 px-6 py-2 rounded-full border border-white/20">
+            <span class="text-yellow-400 font-bold">Puntos: </span>
+            <span id="score-display">0</span>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-4 mt-8">
+            <button onclick="filter('bugtong')" id="btn-bugtong" class="tab-btn active px-6 py-2 rounded-full border border-yellow-400 font-bold">104 Bugtong</button>
+            <button onclick="filter('salawikain')" id="btn-salawikain" class="tab-btn px-6 py-2 rounded-full border border-yellow-400 font-bold">101 Salawikain</button>
+            <button onclick="filter('sawikain')" id="btn-sawikain" class="tab-btn px-6 py-2 rounded-full border border-yellow-400 font-bold">50 Sawikain</button>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="main-container">
+        </div>
+
+    <script>
+        let score = 0;
+        let answeredCards = new Set(); // Tagasubaybay sa mga nasagutan na o nabuksan na
+
+        const bugtongs = [
+            { q: "Bahay ni Kaka, hindi mabilang ang mata.", a: "Pinya" },
+            { q: "Isang butil ng palay, sakop ang buong bahay.", a: "Ilaw / Kandila" },
+            { q: "Isang pamilya, iisa ang bituka.", a: "Saging" },
+            { q: "Munting kura, mabilog ang mukha.", a: "Kalamansi" },
+            { q: "Kampana ni Santa Maria, hindi tumutunog kapag kinalabit.", a: "Makopa" },
+            { q: "Kinagat ko ang dulo, ang lumabas ay buto.", a: "Santol" },
+            { q: "Berde ang labas, pula ang loob, itim ang mga buto.", a: "Pakwan" },
+            { q: "Pulang bola, punong-puno ng balahibo.", a: "Rambutan" },
+            { q: "Langit sa itaas, langit sa ibaba, may tubig sa gitna.", a: "Niyog" },
+            { q: "Isang reyna, may buhok na kulay ginto.", a: "Mais" },
+            { q: "Mataas kung nakaupo, mababa kung nakatayo.", a: "Aso / Pusa" },
+            { q: "Bahay niya ay dala-dala niya, saan man pumunta.", a: "Pagong" },
+            { q: "Tali na walang buhol, gumagapang sa damuhan.", a: "Ahas" },
+            { q: "Munting bituin sa lupa, kumikislap tuwing gabi.", a: "Alitaptap" },
+            { q: "Dalawang magkapatid, laging nag-uunahan.", a: "Sapatos / Paa" },
+            { q: "Kung kailan umulan, saka binubuksan.", a: "Payong" },
+            { q: "Kung kailan tumatanda, saka lumiliit ang buhay.", a: "Kandila" },
+            { q: "Sa araw ay bumbong, sa gabi ay dahon.", a: "Banig" },
+            { q: "Dalawang batong itim, malayo ang nararating.", a: "Mata" },
+            { q: "Damong itim, nasa itaas ng bundok.", a: "Buhok" },
+            { q: "Limang magkakapatid, iisa ang dibdib.", a: "Kamay" },
+            { q: "Heto na si Kaka, bubuka-bukaka.", a: "Gunting" },
+            { q: "Dala mo siya, dala ka niya.", a: "Sapatos" },
+            { q: "Hindi hari, hindi pari, nagsusuot ng sari-sari.", a: "Sampayan" },
+            { q: "May katawan walang mukha, may pakpak walang hininga.", a: "Eroplano" },
+            { q: "Maliit na bahay, puno ng mga patay.", a: "Posporo" },
+            { q: "Bumili ako ng alipin, mataas pa sa akin.", a: "Sumbrero" },
+            { q: "Kadenang maingay, sa aso ay nagbabantay.", a: "Tanikala" },
+            { q: "Ulan nang ulan, hindi mabasa ang tiyan.", a: "Gabi (Leaf)" },
+            { q: "Kaisa-isang plato, kita sa buong mundo.", a: "Buwan" },
+            { q: "Araw-araw namamatay, gabi-gabi nabubuhay.", a: "Bituin" },
+            { q: "Maliit na tao, may apoy sa ulo.", a: "Posporo" },
+            { q: "Hinila ko ang baging, nagkakara ang matsing.", a: "Kampana" },
+            { q: "Baboy ko sa pulo, ang balahibo ay pako.", a: "Langka" },
+            { q: "Puno ay buku-buko, dahon ay abaniko.", a: "Saging" },
+            { q: "Isang balong malalim, puno ng mga patalim.", a: "Bibig" },
+            { q: "Nagtago si Pilo, nakalabas ang ulo.", a: "Pako" },
+            { q: "Nagbibigay na, sinasakal pa.", a: "Bote" },
+            { q: "Lumalakad walang paa, tumataghoy walang hininga.", a: "Barko" },
+            { q: "Buto't balat, lumilipad.", a: "Saranggola" },
+            { q: "Ako ay may kaibigan, kasama ko kahit saan.", a: "Anino" },
+            { q: "Nakayuko ang reyna, hindi nalalaglag ang korona.", a: "Bayabas" },
+            { q: "Malaki ang bumbong, maliit ang butas.", a: "Bote" },
+            { q: "Mataas ang lipad, walang pakpak.", a: "Usok" },
+            { q: "Isang hukbo ng mga sundalo, puti ang mga ulo.", a: "Kuko" },
+            { q: "Hindi hayop, hindi tao, may dalawang mukha.", a: "Plaka / Barya" },
+            { q: "Tinaga ko sa puno, sa dulo nagdurugo.", a: "Gumamela" },
+            { q: "Isang malaking sisidlan, hindi mapuno ng ulan.", a: "Bakol" },
+            { q: "Kay liit pa ni nene, marunong na manahi.", a: "Gagamba" },
+            { q: "Panyong puti, isinabit sa poste.", a: "Bandila" },
+            { q: "May binti walang hita, may tuktok walang mukha.", a: "Kabute" },
+            { q: "Narito na si amain, laging may dalang pagkain.", a: "Lamesa" },
+            { q: "Binunot ko ang patalim, nagningning ang dilim.", a: "Kidlat" },
+            { q: "Isang kaban ng brilyante, hindi mabilang ng hari.", a: "Bituin" },
+            { q: "Mapuputing sundalo, nakatira sa loob ng kuweba.", a: "Ngipin" },
+            { q: "Walang paa, walang pakpak, mabilis lumipad.", a: "Oras" },
+            { q: "Buto't balat, lumilipad.", a: "Saranggola" },
+            { q: "Isang hayop na maliit, sa pader nakadikit.", a: "Butiki" },
+            { q: "May ulo walang buhok, may tiyan walang bituka.", a: "Bote" },
+            { q: "May dalawang mata, hindi nakakakita.", a: "Karayom" },
+            { q: "Hinila ko ang baging, nagtatalon ang matsing.", a: "Kampana" },
+            { q: "Ang paa ay nasa ulo, ang ulo ay nasa paa.", a: "Kuto" },
+            { q: "May ngipin pero walang bibig.", a: "Suklay" },
+            { q: "Maliit na parang uling, magaling magpalundag.", a: "Pulgas" },
+            { q: "Nakatayo ang ina, nakaupo na ang anak.", a: "Kalabasa" },
+            { q: "Isang bayabas, pito ang butas.", a: "Mukha" },
+            { q: "Tubig na naging bato, batong naging tubig.", a: "Yelo" },
+            { q: "Sumasayaw na parang baliw, kapag hangin ay dumating.", a: "Dahon" },
+            { q: "Isang sundalong payat, laging may pasan na mabigat.", a: "Walis" },
+            { q: "May puno walang sanga, may dahon walang bunga.", a: "Sandok" },
+            { q: "Isang magandang dalaga, hindi marunong magsalita.", a: "Manika" },
+            { q: "Nagtago si Pilo, nakalabas ang ulo.", a: "Pako" },
+            { q: "Dala mo siya, dala ka rin niya.", a: "Sapatos" },
+            { q: "May balbas pero hindi matanda.", a: "Kambing" },
+            { q: "Maliit na bahay, puno ng mga patay.", a: "Posporo" },
+            { q: "Hinila ko ang baging, nag-ingay ang matsing.", a: "Kampana" },
+            { q: "Hindi hayop, hindi tao, may dalawang mukha.", a: "Barya" },
+            { q: "Nakatayo ang ina, nakaupo na ang anak.", a: "Kalabasa" },
+            { q: "Mabigat kung tingnan, magaan kung buhatin.", a: "Bulak" },
+            { q: "May ngipin pero walang bibig.", a: "Suklay" },
+            { q: "Maitim na parang tinta, pumuputi nang kusa.", a: "Buhok" },
+            { q: "Buto't balat, lumilipad.", a: "Saranggola" },
+            { q: "Dalawang balon, hindi malingon.", a: "Tenga" },
+            { q: "Maliit na parang buto, malayo ang nararating.", a: "Sulat" },
+            { q: "Isang butil ng palay, sakop ang buong bahay.", a: "Ilaw" },
+            { q: "Puno ay buku-buko, dahon ay abaniko.", a: "Saging" },
+            { q: "May binti walang hita, may tuktok walang mukha.", a: "Kabute" },
+            { q: "Isang buto, maraming pako.", a: "Langka" },
+            { q: "May pitong butas, iisa ang ulo.", a: "Mukha" },
+            { q: "Heto na si Kaka, bubuka-bukaka.", a: "Gunting" },
+            { q: "Dala mo siya, dala ka niya.", a: "Sapatos" },
+            { q: "Baboy ko sa pulo, ang balahibo ay pako.", a: "Langka" },
+            { q: "Isang hukbo ng mga sundalo, puti ang mga ulo.", a: "Kuko" },
+            { q: "Isang balong malalim, puno ng mga patalim.", a: "Bibig" },
+            { q: "Ulan nang ulan, hindi mabasa ang tiyan.", a: "Dahon ng Gabi" },
+            { q: "Ako ay may kaibigan, kasama ko kahit saan.", a: "Anino" },
+            { q: "Nagtago si Pilo, nakalabas ang ulo.", a: "Pako" },
+            { q: "Maliit na tao, may apoy sa ulo.", a: "Posporo" },
+            { q: "Hinila ko ang baging, nagtatalon ang matsing.", a: "Kampana" },
+            { q: "Isang kaban ng brilyante, hindi mabilang ng hari.", a: "Bituin" },
+            { q: "Mataas ang lipad, walang pakpak.", a: "Usok" },
+            { q: "Ang paa ay nasa ulo, ang ulo ay nasa paa.", a: "Kuto" },
+            { q: "Kay liit pa ni nene, marunong na manahi.", a: "Gagamba" },
+            { q: "Binunot ko ang patalim, nagningning ang dilim.", a: "Kidlat" }
+        ];
+
+        const salawikains = [
+            { q: "Pag may itinanim...", a: "May aanihin." },
+            { q: "Aanhin pa ang damo...", a: "Kung patay na ang kabayo." },
+            { q: "Ang hindi lumingon sa pinanggalingan...", a: "Hindi makakarating sa paroroonan." },
+            { q: "Habang maikli ang kumot...", a: "Matutong mamaluktot." },
+            { q: "Kung ano ang puno...", a: "Siya ang bunga." },
+            { q: "Sa madaang masalita...", a: "Kulang sa gawa." },
+            { q: "Pag kinuha sa gabi...", a: "Sa araw ay may bawi." },
+            { q: "Ang sakit ng kalingkingan...", a: "Dama ng buong katawan." },
+            { q: "Walang matiyagang taga...", a: "Sa malambot na baka." },
+            { q: "Nasa Diyos ang awa...", a: "Nasa tao ang gawa." },
+            { q: "Kapag may isinuksok...", a: "May madudukot." },
+            { q: "Ang lumalakad nang matulin...", a: "Kung matinik ay malalim." },
+            { q: "Magsisi ka man at huli...", a: "Wala nang mangyayari." },
+            { q: "Pag ang tubig ay magulo...", a: "May buwayang sumasilo." },
+            { q: "Ang mabigat ay gumagaan...", a: "Pag nagtutulungan." },
+            { q: "Pagkahaba-haba man ng prusisyon...", a: "Sa simbahan din ang tuloy." },
+            { q: "Walang lumura sa langit...", a: "Na di sa mukha niya tumalamsik." },
+            { q: "Kapag ang tao'y matipid...", a: "Maraming maliligpit." },
+            { q: "Ang taong nagigipit...", a: "Sa patalim kumakapit." },
+            { q: "Kung walang tiyaga...", a: "Walang nilaga." },
+            { q: "Madali ang maging tao...", a: "Mahirap magpakatao." },
+            { q: "Kung hindi ukol...", a: "Hindi bubukol." },
+            { q: "Ang umaayaw...", a: "Ay hindi nananalo." },
+            { q: "Huwag gumawa ng masama...", a: "Upang huwag kang mapuna." },
+            { q: "Ang bayaning nasugatan...", a: "Nagliliyab ang katapangan." },
+            { q: "Pulot nang pulot...", a: "Ginto'y nagiging tanso." },
+            { q: "Ang hindi marunong magmahal sa sariling wika...", a: "Ay mahigit pa sa hayop at malansang isda." },
+            { q: "Pag hangin ang itinanim...", a: "Bagyo ang aanihin." },
+            { q: "Daig ng maagap...", a: "Ang masipag." },
+            { q: "Ang katapat ng langit...", a: "Ay lupa." },
+            { q: "Walang umaani...", a: "Ng hindi nagtatanim." },
+            { q: "Ang katotohanan...", a: "Kahit ibaon ay lilitaw din." },
+            { q: "Ang magalang na sagot...", a: "Ay nakakapawi ng pagod." },
+            { q: "Ang lakas ay daig...", a: "Ng paraan." },
+            { q: "Anumang gagawin...", a: "Makapitong iisipin." },
+            { q: "Iwasan ang bisyo...", a: "Upang hindi mapahamak." },
+            { q: "Huwag magbilang ng sisiw...", a: "Hangga't hindi pa napipisa ang itlog." },
+            { q: "Ang kayamanang galing sa kasamaan...", a: "Madaling mawala." },
+            { q: "Anumang haba ng gabi...", a: "Darating din ang umaga." },
+            { q: "Kung ano ang itinanim...", a: "Iyon ang aanihin." },
+            { q: "Ang pagsasabi ng tapat...", a: "Ay pagsasama ng maluwat." },
+            { q: "Ang mabuting halimbawa...", a: "Ay higit sa aral." },
+            { q: "Hindi lahat ng kumikinang...", a: "Ay ginto." },
+            { q: "Ang kapalaran...", a: "Ay hindi nahuhulaan." },
+            { q: "Tapat na kaibigan...", a: "Ay mahahanap sa kagipitan." },
+            { q: "Ang matapat na tao...", a: "Ay laging panalo." },
+            { q: "Ang tunay na kaibigan...", a: "Nakikilala sa kagipitan." },
+            { q: "Pag binato ka ng bato...", a: "Batuhin mo ng tinapay." },
+            { q: "Kapag may tiyaga...", a: "May nilaga." },
+            { q: "Ang gumagawa ng mabuti...", a: "Ay hindi kailanman nagmimintis." },
+            { q: "Mabuti pa ang isang sulyap...", a: "Kaysa sa isang libong salita." },
+            { q: "Walang lihim...", a: "Na hindi nabubunyag." },
+            { q: "Ang oras...", a: "Ay ginto." },
+            { q: "Ang sipag...", a: "Ay susi ng tagumpay." },
+            { q: "Ang maliit...", a: "Ay nakakapuwing." },
+            { q: "Ang hindi marunong makinig...", a: "Ay hindi marunong matuto." },
+            { q: "Ang taong walang kibo...", a: "Nasa loob ang kulo." },
+            { q: "Ang buhay ay parang gulong...", a: "Minsang nasa ibabaw, minsang nasa ilalim." },
+            { q: "Matulog nang maaga...", a: "Gising nang maaga." },
+            { q: "Magtipid habang...", a: "Mayroon pang itatabi." },
+            { q: "Kung ano ang gawa...", a: "Iyon ang gantimpala." },
+            { q: "Ang kababaang-loob...", a: "Ay higit sa ginto." },
+            { q: "Huwag kang matakot sa dagat...", a: "Kung marunong kang lumangoy." },
+            { q: "Ang matalinong tao...", a: "Kulang sa gawa." },
+            { q: "Ang bawat simula...", a: "Ay may dulo." },
+            { q: "Sa hinaba-haba ng prusisyon...", a: "Sa simbahan din ang tuloy." },
+            { q: "Walang matigas na tinapay...", a: "Sa mainit na kape." },
+            { q: "Ang gawa ng masama...", a: "Ay laging may kapalit." },
+            { q: "Ang tunay na maganda...", a: "Ay nasa loob." },
+            { q: "Magsama-sama...", a: "Para sa pag-unlad." },
+            { q: "Pag kinuha sa gabi...", a: "Sa araw ay may bawi." },
+            { q: "Magpakabuti...", a: "Saan man magpunta." },
+            { q: "Ang katapatan...", a: "Ay kayamanan." },
+            { q: "Huwag kang tumingin sa hitsura...", a: "Kundi sa puso." },
+            { q: "Ang edukasyon...", a: "Ay kayamanang hindi mananakaw." },
+            { q: "Masarap ang mag-aral...", a: "Kung ikaw ay masipag." },
+            { q: "Ang maging matiyaga...", a: "Ay may gantimpala." },
+            { q: "Huwag kang maging kampante...", a: "Habang wala pa sa dulo." },
+            { q: "Ang disiplina...", a: "Ay daan sa tagumpay." },
+            { q: "Walang imposible...", a: "Sa taong may pangarap." },
+            { q: "Ang bawat patak ng pawis...", a: "Ay may katumbas na bunga." },
+            { q: "Mahalin ang magulang...", a: "Biyaya ay kakamtan." },
+            { q: "Huwag kalimutan...", a: "Ang pinagmulan." },
+            { q: "Ang Diyos ay laging...", a: "Nakasubaybay sa atin." },
+            { q: "Ang panalangin...", a: "Ay sandata ng tao." },
+            { q: "Mabuhay nang simple...", a: "Laging may kapayapaan." },
+            { q: "Huwag manghusga...", a: "Base sa nakikita." },
+            { q: "Ang pasensya...", a: "Ay laging may bunga." },
+            { q: "Maging matulungin...", a: "Sa kapwa tao." },
+            { q: "Ang bawat tao...", a: "Ay may kani-kaniyang galing." },
+            { q: "Ang pamilya...", a: "Ay laging una." },
+            { q: "Huwag susuko...", a: "Kahit mahirap ang laban." },
+            { q: "Ang liwanag...", a: "Ay laging mananaig." },
+            { q: "Ang bawat hakbang...", a: "Ay mahalaga." },
+            { q: "Ang pananalita...", a: "Ay dapat paka-iisipin." },
+            { q: "Maging tapat...", a: "Sa bawat pangako." },
+            { q: "Ang kaibigan...", a: "Ay parang kapatid." },
+            { q: "Ang pagtitiwala...", a: "Ay mahirap ibalik." },
+            { q: "Mabuti pa ang nag-iisa...", a: "Kaysa sa masamang kasama." },
+            { q: "Ang katarungan...", a: "Ay laging lalabas." },
+            { q: "Ang lahat ng bagay...", a: "Ay lilipas din." }
+        ];
+
+        const sawikains = [
+            { q: "Balat-sibuyas", a: "Masyadong sensitibo / madaling umiyak" },
+            { q: "Butas ang bulsa", a: "Walang pera" },
+            { q: "Bukal sa loob", a: "Tapat / Taos-puso" },
+            { q: "Mababaw ang luha", a: "Madaling umiyak" },
+            { q: "Naglulubid ng buhangin", a: "Nagsisinungaling" },
+            { q: "Nagbibilang ng poste", a: "Walang trabaho" },
+            { q: "Suntok sa buwan", a: "Imposibleng mangyari" },
+            { q: "Itaga sa bato", a: "Tandaan / Huwag kalimutan" },
+            { q: "Ilaw ng tahanan", a: "Ina / Nanay" },
+            { q: "Haligi ng tahanan", a: "Ama / Tatay" },
+            { q: "Bahag ang buntot", a: "Duwag" },
+            { q: "Ilista sa tubig", a: "Kalimutan na ang utang" },
+            { q: "Amoy pinipig", a: "Mabango / Maganda" },
+            { q: "Kape at gatas", a: "Magkaibang kulay (Itim at Puti)" },
+            { q: "Abot-langit", a: "Sobra-sobra" },
+            { q: "Agaw-buhay", a: "Mamatay na / Malubha" },
+            { q: "Anak-dalita", a: "Mahirap" },
+            { q: "Alimuom", a: "Tsismis / Sabi-sabi" },
+            { q: "Boses palaka", a: "Pangit kumanta" },
+            { q: "Kamay na bakal", a: "Mahigpit na pamumuno" },
+            { q: "Kusang palo", a: "May pagkukusa" },
+            { q: "Mabigat ang kamay", a: "Tamad magtrabaho" },
+            { q: "Magaan ang dugo", a: "Madaling magustuhan" },
+            { q: "Mahaba ang dila", a: "Tsismosa" },
+            { q: "Mahangin ang ulo", a: "Mayabang" },
+            { q: "Matalas ang tainga", a: "Madaling makarinig" },
+            { q: "Matigas ang ulo", a: "Hindi nakikinig / Suwail" },
+            { q: "Nagmumurang kamatis", a: "Matandang nagbabata-bataan" },
+            { q: "Naniningalang-pugad", a: "Nanliligaw" },
+            { q: "Ningas-kugon", a: "Sa simula lang masigasig" },
+            { q: "Pag-iisang dibdib", a: "Kasal" },
+            { q: "Panakip-butas", a: "Pansamantalang pamalit" },
+            { q: "Patay-gutom", a: "Matakaw" },
+            { q: "Sanga-sangang dila", a: "Sinungaling" },
+            { q: "Tengang kawali", a: "Nagbingi-bingihan" },
+            { q: "Utang na loob", a: "Pasasalamat" },
+            { q: "Balat-kalabaw", a: "Walang hiya" },
+            { q: "Bulaklak ng dila", a: "Pagpapaganda ng kwento" },
+            { q: "Daga sa dibdib", a: "Takot / Kaba" },
+            { q: "Hampaslupa", a: "Mahirap / Walang ari-arian" },
+            { q: "Isang kahig, isang tuka", a: "Sobrang hirap ng buhay" },
+            { q: "Kalam ang tiyan", a: "Gutom" },
+            { q: "Kumukulo ang dugo", a: "Naiinis / Nagagalit" },
+            { q: "Maitim ang budhi", a: "Masamang tao" },
+            { q: "Makapal ang mukha", a: "Walang hiya" },
+            { q: "Maluwang ang tornilyo", a: "Luko-luko" },
+            { q: "Matapobre", a: "Mapanglait sa mahihirap" },
+            { q: "Pasan ang daigdig", a: "Maraming problema" },
+            { q: "Saling-pusa", a: "Hindi kabilang sa laro" },
+            { q: "Takaw-tingin", a: "Hanggang tingin lang" }
+        ];
+
+        const container = document.getElementById('main-container');
+
+        function checkAnswer(input, correctAnswer, cardId) {
+            if (answeredCards.has(cardId)) return; // Stop if card is already touched
+
+            const card = document.getElementById(cardId);
+            const userVal = input.value.toLowerCase().trim();
+            const correctVal = correctAnswer.toLowerCase().trim();
+            
+            // Simple check if the user guess is part of the answer or vice-versa
+            if (userVal !== "" && (correctVal.includes(userVal) || userVal.includes(correctVal))) {
+                score += 10;
+                document.getElementById('score-display').innerText = score;
+                card.classList.add('revealed', 'correct-anim');
+                answeredCards.add(cardId); // Mark as correctly answered
+            }
+        }
+
+        function revealWithoutScore(cardId) {
+            if (answeredCards.has(cardId)) return; // Do nothing if already answered
+
+            const card = document.getElementById(cardId);
+            if (!card.classList.contains('revealed')) {
+                card.classList.add('revealed', 'disabled-card'); // Show answer but disable scoring
+                answeredCards.add(cardId); // Mark as used so it can't be answered anymore
+            }
+        }
+
+        function render(data, type) {
+            container.innerHTML = '';
+            data.forEach((item, index) => {
+                const cardId = `card-${type}-${index}`;
+                const card = document.createElement('div');
+                card.id = cardId;
+                card.className = 'glass-card p-6 rounded-2xl cursor-pointer flex flex-col justify-center items-center text-center min-h-[220px]';
+                
+                // Add logic for initial state if already interacted with
+                if (answeredCards.has(cardId)) {
+                    card.classList.add('revealed', 'disabled-card');
+                }
+
+                card.innerHTML = `
+                    <span class="text-xs uppercase tracking-tighter text-yellow-500 mb-2 font-bold">${type} #${index + 1}</span>
+                    <p class="text-lg font-bold leading-tight mb-4">"${item.q}"</p>
+                    
+                    <div class="game-input w-full px-2" onclick="event.stopPropagation()">
+                        <input type="text" 
+                               placeholder="Hulaan mo..." 
+                               class="w-full bg-white/10 border border-white/20 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-yellow-400 text-center"
+                               onkeyup="if(event.key === 'Enter') checkAnswer(this, '${item.a.replace(/'/g, "\\'")}', '${cardId}')">
+                    </div>
+
+                    <div class="click-hint text-[10px] mt-4 opacity-40 uppercase tracking-widest">I-tap para i-reveal</div>
+                    <div class="answer text-yellow-400 font-bold mt-4 border-t border-white/10 pt-4 w-full">
+                        ${item.a}
+                    </div>
+                `;
+                
+                card.onclick = function() { revealWithoutScore(cardId); };
+                container.appendChild(card);
+            });
+        }
+
+        function filter(cat) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + cat).classList.add('active');
+            
+            if(cat === 'bugtong') render(bugtongs, 'Bugtong');
+            if(cat === 'salawikain') render(salawikains, 'Salawikain');
+            if(cat === 'sawikain') render(sawikains, 'Sawikain');
+        }
+
+        // Initial Load
+        render(bugtongs, 'Bugtong');
+    </script>
+</body>
+</html>
